@@ -2,11 +2,6 @@ import csv
 import sys
 import os
 
-#Types of paths
-layerIVStart = {}
-layerIVEnd = {}
-axons = {}
-branches = {}
 
 def main():
 	if len(sys.argv) != 1:
@@ -25,66 +20,127 @@ def main():
 			analyzeMouse(mouseDir, files)
 		
 def analyzeMouse(mouseDir, files):
+	neurons = []
 	for csvpath in files:
-		with open(csvpath) as csvfile:
-			reader = csv.reader(csvfile,delimiter=',', quotechar='"')
-			next(reader, None) #skip header
-			data = [line for line in reader]
-			analyzeFile(data)
-			checkData()
-			printSummary(csvpath)
+			neurons.extend(analyzeFile(csvpath))
+	writeBranches(mouseDir,neurons)
+	printSummary(neurons)
 
-def analyzeFile(data):
-	for row in data:
-		pathId = row[0]
-		pathName = row[1].lower()
-		key = keyFromPathName(pathName)
-		primaryPath = row[3].lower() == 'true'
-		pathLength = float(row[4])
-		startsOnPath = row[6]
-		connectedPathIds = row[8]
-		childPathIds = row[9]
-		startY = float(row[11])
-		endY = float(row[14])
+def analyzeFile(csvpath):
+	#Types of paths
+	layerIVStart = {}
+	layerIVEnd = {}
+	axons = {}
+	branches = {}
 
-		if not primaryPath:
-			branch = {}
-			branch['id'] = pathId
-			branch['startY'] = startY
-			branch['endY'] = endY
-			branch['startsOnPath'] = startsOnPath
-			branch['connectedPathIds'] = connectedPathIds
-			branch['childPathIds'] = childPathIds
-			branch['length'] = pathLength
+	with open(csvpath) as csvfile:
+		reader = csv.reader(csvfile,delimiter=',', quotechar='"')
+		next(reader, None) #skip header
 
-			if key not in branches:
-				branches[key] =[]
-			branches[key].append(branch) 
+		for row in reader:
+			pathId = row[0]
+			pathName = row[1].lower()
+			key = keyFromPathName(pathName)
+			primaryPath = row[3].lower() == 'true'
+			pathLength = float(row[4])
+			startsOnPath = row[6]
+			connectedPathIds = row[8]
+			childPathIds = row[9]
+			startY = float(row[11])
+			endY = float(row[14])
 
-		elif pathName.endswith('s to iv'):
-			layerIVStart[key] = max(startY, endY) 
+			if not primaryPath:
+				branch = {}
+				branch['id'] = pathId
+				branch['startY'] = startY
+				branch['endY'] = endY
+				branch['startsOnPath'] = startsOnPath
+				branch['connectedPathIds'] = connectedPathIds
+				branch['childPathIds'] = childPathIds
+				branch['length'] = pathLength
+				#TODO: add where do the branches go and how many uM do they travel
+				if key not in branches:
+					branches[key] =[]
+				branches[key].append(branch) 
 
-		elif pathName.endswith('s to v'):
-			layerIVEnd[key] = max(startY, endY)
+			elif pathName.endswith('s to iv'):
+				layerIVStart[key] = max(startY, endY) 
 
-		elif not pathName.endswith('d to s'):
-			axon = {}
-			axon['id'] = pathId
-			axon['length'] = pathLength
-			axons[key] = axon
+			elif pathName.endswith('s to v'):
+				layerIVEnd[key] = max(startY, endY)
+
+			elif not pathName.endswith('d to s'):
+				axon = {}
+				axon['id'] = pathId
+				axon['length'] = pathLength
+				axons[key] = axon
+
+	numKeys = len(branches)
+	if len(layerIVStart) != numKeys or len(layerIVEnd) != numKeys or len(axons) !=numKeys:
+		print 'Error: inconsistent number of keys, check the data in {}'.format(csvpath)
+		sys.exit(1)
+
+	neurons = []
+	for key in layerIVStart:
+		neuron = {}
+		neuron['name'] = key
+		neuron['layerIVStart'] = layerIVStart[key]
+		neuron['layerIVEnd'] = layerIVEnd[key]
+		neuron['sourceFile'] = csvpath
+		neuron['branches'] = branches[key]
+		neuron['axon'] = axons[key]
+		neurons.append(neuron)
+	return neurons
+
 
 def keyFromPathName(pathName):
 	return ''.join(pathName.split(' ') [:2])
 
-def checkData():
-	numKeys = len(branches)
-	if len(layerIVStart) != numKeys or len(layerIVEnd) != numKeys or len(axons) !=numKeys:
-		print 'Error: inconsistent number of keys, check the data'
-		sys.exit(1)
+def getComplexity(branch, neuron):
+	if branch['startsOnPath'] == neuron['axon']['id']:
+		return 'primary'
+	else:
+		return 'secondary'
 
-def printSummary(filepath):
+def getLayer(branch, neuron):
+	if branch['startY'] < neuron['layerIVStart']:
+		return 'II/III'
+	elif branch['startY'] < neuron['layerIVEnd']:
+		return 'IV'
+	else:
+		return 'V'
 
-	for key in layerIVStart:
+def getDirection(branch):
+	if branch['endY'] < branch['startY']:
+		return 'II/III'
+	elif branch['endY'] > branch['startY']:
+		return 'V'
+	else:
+		return 'stable'
+
+def writeBranches(mouseDir, neurons):
+	#writes to a file in the mouse directory
+	branchesPath = os.path.join(mouseDir, 'branches.csv')
+	with open(branchesPath, 'w') as branchFile:
+		branchFile.write('sourceFile,neuron,length,startY,endY,layer,complexity,direction\n')
+		for neuron in neurons:
+			for branch in neuron['branches']:
+				complexity = getComplexity(branch, neuron)
+				layer = getLayer(branch, neuron)
+				direction = getDirection(branch)
+				branchFile.write('{},{},{},{},{},{},{},{}\n'.format(
+
+					neuron['sourceFile'],
+					neuron['name'],
+					branch['length'],
+					branch['startY'],
+					branch['endY'],
+					layer, complexity, direction
+					))
+
+def printSummary(neurons):
+	for neuron in neurons:
+
 		primaryBranches = 0
 		secondaryBranches = 0
 		layerIIIBranches = 0
@@ -92,23 +148,26 @@ def printSummary(filepath):
 		layerVBranches = 0
 		middleThirdBranches = 0
 
-		for branch in branches[key]:
-			if branch['startY'] < layerIVStart[key]:
+		for branch in neuron['branches']:
+			layer = getLayer(branch, neuron)
+			if layer == 'II/III':
 				layerIIIBranches += 1
-			elif branch['startY'] < layerIVEnd[key]:
+			elif layer == 'IV':
 				layerIVBranches += 1
-				percent = (branch['startY'] - layerIVStart[key])/(layerIVEnd[key] - layerIVStart[key])
+				percent = (branch['startY'] - neuron['layerIVStart'])/(neuron['layerIVEnd'] - neuron['layerIVStart'])
 				if percent > (1.0/3) and percent < (2.0/3):
 					middleThirdBranches += 1
 			else:
 				layerVBranches += 1
 
-			if branch['startsOnPath'] == axons[key]['id']:
+			if getComplexity(branch, neuron) == 'primary':
 				primaryBranches += 1
 			else:
 				secondaryBranches += 1
 
-		print '{},{},{},{},{},{},{},{},{},{},{}'.format(key, layerIVStart[key], layerIVEnd[key], len(branches[key]), primaryBranches, secondaryBranches, layerIIIBranches, layerIVBranches, middleThirdBranches, layerVBranches, filepath)
+		print '{},{},{},{},{},{},{},{},{},{},{}'.format(neuron['name'], neuron['layerIVStart'], neuron['layerIVEnd'], len(neuron['branches']), 
+														primaryBranches, secondaryBranches, layerIIIBranches, layerIVBranches, middleThirdBranches, 
+														layerVBranches, neuron['sourceFile'])
 
 
 if __name__== "__main__":
