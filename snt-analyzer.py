@@ -2,38 +2,40 @@ import csv
 import sys
 import os
 
-
+# Program entry point
 def main():
 	if len(sys.argv) != 1:
 		print 'Usage: python snt-analyzer.py' 
 		sys.exit(1)
-	
-	print 'Neuron,Layer IV Start,Layer IV End,Branches,1st Branches,2nd Branches,LII/III Branches,LIV Branches,"middle" LIV Branches,LV Branches,Source File'
 
-	#Which files we search only with directory name CSV and only with ending in .csv
+	mouseData = parseMouseData()
+	for mouseDir, neurons in mouseData.iteritems():
+		writeBranches(mouseDir, neurons)
+		writeSummary(mouseDir, neurons)
+
+# Finds and parses all files inside directory name CSV and ending with .csv
+# extension. Returns a dictionary: key = mouse directory, value = list of
+# neuron objects
+def parseMouseData():
+	mouseData = {}
 	for dirpath, dirnames, filenames in os.walk('In_vivo_analysis/GSK null/Mouse8'):
 		if dirpath.lower().endswith('/csv'):
-
-			#where to save the output file
 			mouseDir = os.path.split(dirpath)[0]
-			files = [os.path.join(dirpath, f) for f in filenames if f.endswith('.csv')]
-			analyzeMouse(mouseDir, files)
-		
-def analyzeMouse(mouseDir, files):
-	neurons = []
-	for csvpath in files:
-			neurons.extend(analyzeFile(csvpath))
-	writeBranches(mouseDir,neurons)
-	printSummary(neurons)
+			csvPaths = [os.path.join(dirpath, f) for f in filenames if f.endswith('.csv')]
+			neurons = [neuron for path in csvPaths for neuron in parseCsv(path)]
+			mouseData[mouseDir] = neurons
+			print 'Found {} neurons across {} csv files in {}'.format(len(neurons), len(csvPaths), mouseDir)
+	return mouseData
 
-def analyzeFile(csvpath):
-	#Types of paths
+# Parses a single CSV file at the given path. Returns a list of neuron objects
+def parseCsv(path):
+	# Types of paths
 	layerIVStart = {}
 	layerIVEnd = {}
 	axons = {}
 	branches = {}
 
-	with open(csvpath) as csvfile:
+	with open(path) as csvfile:
 		reader = csv.reader(csvfile,delimiter=',', quotechar='"')
 		next(reader, None) #skip header
 
@@ -63,21 +65,27 @@ def analyzeFile(csvpath):
 					branches[key] =[]
 				branches[key].append(branch) 
 
-			elif pathName.endswith('s to iv'):
+			elif pathName.endswith(' iv'):
+				if key in layerIVStart:
+					parseError('found multiple soma to IV paths', key, path)
 				layerIVStart[key] = max(startY, endY) 
 
-			elif pathName.endswith('s to v'):
+			elif pathName.endswith(' v'):
+				if key in layerIVEnd:
+					parseError('found multiple soma to V paths', key, path)
 				layerIVEnd[key] = max(startY, endY)
 
-			elif not pathName.endswith('d to s'):
+			elif not pathName.endswith(' s'):
+				if key in axons:
+					parseError('found multiple axons', key, path)
 				axon = {}
 				axon['id'] = pathId
 				axon['length'] = pathLength
 				axons[key] = axon
 
 	numKeys = len(branches)
-	if len(layerIVStart) != numKeys or len(layerIVEnd) != numKeys or len(axons) !=numKeys:
-		print 'Error: inconsistent number of keys, check the data in {}'.format(csvpath)
+	if len(layerIVStart) != numKeys or len(layerIVEnd) != numKeys or len(axons) != numKeys:
+		print 'Error: inconsistent number of keys in file {}'.format(path)
 		sys.exit(1)
 
 	neurons = []
@@ -86,15 +94,82 @@ def analyzeFile(csvpath):
 		neuron['name'] = key
 		neuron['layerIVStart'] = layerIVStart[key]
 		neuron['layerIVEnd'] = layerIVEnd[key]
-		neuron['sourceFile'] = csvpath
+		neuron['source'] = path
 		neuron['branches'] = branches[key]
 		neuron['axon'] = axons[key]
 		neurons.append(neuron)
 	return neurons
 
-
 def keyFromPathName(pathName):
-	return ''.join(pathName.split(' ') [:2])
+	return ''.join(pathName.split(' ')[:2])
+
+def parseError(reason, key, path):
+	print 'Error: {} for {} in file {}'.format(reason, key, path)
+	sys.exit(1)
+
+# Writes branch data to a file in the mouse directory
+def writeBranches(mouseDir, neurons):
+	branchesPath = os.path.join(mouseDir, 'branches.csv')
+	print 'Writing branch data to {}'.format(branchesPath)
+	with open(branchesPath, 'w') as branchFile:
+		branchFile.write('Source,Neuron,Length,StartY,EndY,Layer,Complexity,Direction\n')
+		for neuron in neurons:
+			for branch in neuron['branches']:
+				csv = []
+				csv.append(neuron['source'])
+				csv.append(neuron['name'])
+				csv.append(str(branch['length']))
+				csv.append(str(branch['startY']))
+				csv.append(str(branch['endY']))
+				csv.append(getLayer(branch, neuron))
+				csv.append(getComplexity(branch, neuron))
+				csv.append(getDirection(branch))
+				branchFile.write(','.join(csv) + '\n')
+
+# Write summary data to a file in the mouse directory
+def writeSummary(mouseDir, neurons):
+	summaryPath = os.path.join(mouseDir, 'summary.csv')
+	print 'Writing summary data to {}'.format(summaryPath)
+	with open(summaryPath, 'w') as summaryFile:
+		summaryFile.write('Source,Neuron,Layer IV Start,Layer IV End,Total Branches,Primary Branches,Secondary Branches,LII/III Branches,LIV Branches,"Middle" LIV Branches,LV Branches\n')
+		for neuron in neurons:
+			primaryBranches = 0
+			secondaryBranches = 0
+			layerIIIBranches = 0
+			layerIVBranches = 0
+			layerVBranches = 0
+			middleThirdBranches = 0
+
+			for branch in neuron['branches']:
+				layer = getLayer(branch, neuron)
+				if layer == 'II/III':
+					layerIIIBranches += 1
+				elif layer == 'IV':
+					layerIVBranches += 1
+					percent = (branch['startY'] - neuron['layerIVStart'])/(neuron['layerIVEnd'] - neuron['layerIVStart'])
+					if percent > (1.0/3) and percent < (2.0/3):
+						middleThirdBranches += 1
+				else:
+					layerVBranches += 1
+
+				if getComplexity(branch, neuron) == 'primary':
+					primaryBranches += 1
+				else:
+					secondaryBranches += 1
+
+			csv = []
+			csv.append(neuron['source'])
+			csv.append(neuron['name'])
+			csv.append(str(neuron['layerIVStart']))
+			csv.append(str(neuron['layerIVEnd']))
+			csv.append(str(len(neuron['branches'])))
+			csv.append(str(primaryBranches))
+			csv.append(str(secondaryBranches))
+			csv.append(str(layerIIIBranches))
+			csv.append(str(layerIVBranches))
+			csv.append(str(middleThirdBranches))
+			csv.append(str(layerVBranches))
+			summaryFile.write(','.join(csv) + '\n')
 
 def getComplexity(branch, neuron):
 	if branch['startsOnPath'] == neuron['axon']['id']:
@@ -118,57 +193,5 @@ def getDirection(branch):
 	else:
 		return 'stable'
 
-def writeBranches(mouseDir, neurons):
-	#writes to a file in the mouse directory
-	branchesPath = os.path.join(mouseDir, 'branches.csv')
-	with open(branchesPath, 'w') as branchFile:
-		branchFile.write('sourceFile,neuron,length,startY,endY,layer,complexity,direction\n')
-		for neuron in neurons:
-			for branch in neuron['branches']:
-				complexity = getComplexity(branch, neuron)
-				layer = getLayer(branch, neuron)
-				direction = getDirection(branch)
-				branchFile.write('{},{},{},{},{},{},{},{}\n'.format(
-
-					neuron['sourceFile'],
-					neuron['name'],
-					branch['length'],
-					branch['startY'],
-					branch['endY'],
-					layer, complexity, direction
-					))
-
-def printSummary(neurons):
-	for neuron in neurons:
-
-		primaryBranches = 0
-		secondaryBranches = 0
-		layerIIIBranches = 0
-		layerIVBranches = 0
-		layerVBranches = 0
-		middleThirdBranches = 0
-
-		for branch in neuron['branches']:
-			layer = getLayer(branch, neuron)
-			if layer == 'II/III':
-				layerIIIBranches += 1
-			elif layer == 'IV':
-				layerIVBranches += 1
-				percent = (branch['startY'] - neuron['layerIVStart'])/(neuron['layerIVEnd'] - neuron['layerIVStart'])
-				if percent > (1.0/3) and percent < (2.0/3):
-					middleThirdBranches += 1
-			else:
-				layerVBranches += 1
-
-			if getComplexity(branch, neuron) == 'primary':
-				primaryBranches += 1
-			else:
-				secondaryBranches += 1
-
-		print '{},{},{},{},{},{},{},{},{},{},{}'.format(neuron['name'], neuron['layerIVStart'], neuron['layerIVEnd'], len(neuron['branches']), 
-														primaryBranches, secondaryBranches, layerIIIBranches, layerIVBranches, middleThirdBranches, 
-														layerVBranches, neuron['sourceFile'])
-
-
-if __name__== "__main__":
+if __name__== '__main__':
 	main()
