@@ -5,7 +5,7 @@ import os
 # Program entry point
 def main():
 	if len(sys.argv) != 1:
-		print 'Usage: python snt-analyzer.py' 
+		print 'Usage: python snt-analyzer.py'
 		sys.exit(1)
 
 	mouseData = parseMouseData()
@@ -53,7 +53,7 @@ def parseCsv(path):
 				if pathName.endswith('s to iv'):
 					if key in layerIVStart:
 						parseError('found multiple soma to IV paths', key, path)
-					layerIVStart[key] = max(startY, endY) 
+					layerIVStart[key] = max(startY, endY)
 
 				elif pathName.endswith('layer iv'):
 					if key in layerIVEnd:
@@ -67,7 +67,7 @@ def parseCsv(path):
 					axon['id'] = pathId
 					axon['length'] = pathLength
 					axons[key] = axon
-				
+
 				else:
 					print 'Error: primary path has unexpected ending'
 					sys.exit(1)
@@ -79,8 +79,7 @@ def parseCsv(path):
 				branch['endY'] = endY
 				branch['parentId'] = startsOnPath
 				branch['length'] = pathLength
-				#TODO: add where do the branches go and how many uM do they travel
-				branches[pathId] = branch 
+				branches[pathId] = branch
 
 	numKeys = len(axons)
 	if len(layerIVStart) != numKeys or len(layerIVEnd) != numKeys:
@@ -121,7 +120,7 @@ def writeBranches(mouseDir, neurons):
 	branchesPath = os.path.join(mouseDir, 'branches.csv')
 	print 'Writing branch data to {}'.format(branchesPath)
 	with open(branchesPath, 'w') as branchFile:
-		branchFile.write('Source,Neuron,Length,StartY,EndY,Layer,Complexity,Direction\n')
+		branchFile.write('Source,Neuron,Length,StartY,EndY,Layer,Complexity,Direction,Percent Along Axon (IV)\n')
 		for neuron in neurons:
 			writeBranchesInner(branchFile, neuron, neuron['branches'])
 
@@ -130,15 +129,15 @@ def writeBranchesInner(branchFile, neuron, branches):
 		csv = []
 		csv.append(neuron['source'])
 		csv.append(neuron['name'])
-		csv.append(str(branch['length']))
-		csv.append(str(branch['startY']))
-		csv.append(str(branch['endY']))
+		csv.append(fromFloat(branch['length']))
+		csv.append(fromFloat(branch['startY']))
+		csv.append(fromFloat(branch['endY']))
 		csv.append(getLayer(branch, neuron))
 		csv.append(str(branch['complexity']))
 		csv.append(getDirection(branch))
+		csv.append(fromFloat(getPercentage(branch, neuron) *100))
 		branchFile.write(','.join(csv) + '\n')
 		writeBranchesInner(branchFile, neuron, branch['branches'])
-
 
 # Write summary data to a file in the mouse directory
 def writeSummary(mouseDir, neurons):
@@ -160,8 +159,8 @@ def writeSummary(mouseDir, neurons):
 			csv = []
 			csv.append(neuron['source'])
 			csv.append(neuron['name'])
-			csv.append(str(neuron['layerIVStart']))
-			csv.append(str(neuron['layerIVEnd']))
+			csv.append(fromFloat(neuron['layerIVStart']))
+			csv.append(fromFloat(neuron['layerIVEnd']))
 			csv.append(str(totalBranches))
 			csv.append(str(primaryBranches))
 			csv.append(str(secondaryBranches))
@@ -178,7 +177,7 @@ def countBranches(branches, supplier, **kwargs):
 	for branch in branches:
 		count += countBranches(branch['branches'], supplier, **kwargs)
 		count += supplier(branch, **kwargs)
-	return count 
+	return count
 
 def isBranch(branch, **kwargs):
 	return 1
@@ -189,6 +188,13 @@ def isComplex(branch, **kwargs):
 def isLayer(branch, **kwargs):
 	return 1 if getLayer(branch, kwargs['neuron']) == kwargs['layer'] else 0
 
+def isMiddleThird(branch, **kwargs):
+	neuron = kwargs['neuron']
+	if getLayer(branch, neuron) == 'IV':
+		percent = getPercentage(branch, neuron)
+		return 1 if percent > (1.0/3) and percent < (2.0/3) else 0
+	return 0
+
 def getLayer(branch, neuron):
 	if branch['startY'] < neuron['layerIVStart']:
 		return 'II/III'
@@ -197,12 +203,8 @@ def getLayer(branch, neuron):
 	else:
 		return 'V'
 
-def isMiddleThird(branch, **kwargs):
-	neuron = kwargs['neuron']
-	if getLayer(branch, neuron) == 'IV':
-		percent = (branch['startY'] - neuron['layerIVStart'])/(neuron['layerIVEnd'] - neuron['layerIVStart'])
-		return 1 if percent > (1.0/3) and percent < (2.0/3) else 0
-	return 0
+def getPercentage(branch, neuron):
+	return (branch['startY'] - neuron['layerIVStart'])/(neuron['layerIVEnd'] - neuron['layerIVStart'])
 
 def getDirection(branch):
 	if branch['endY'] < branch['startY']:
@@ -211,6 +213,9 @@ def getDirection(branch):
 		return 'V'
 	else:
 		return 'stable'
+
+def fromFloat(number):
+	return '%.2f' % number
 
 if __name__== '__main__':
 	main()
