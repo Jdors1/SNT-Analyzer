@@ -18,7 +18,7 @@ def main():
 # neuron objects
 def parseMouseData():
 	mouseData = {}
-	for dirpath, dirnames, filenames in os.walk('In_vivo_analysis/RalA'):
+	for dirpath, dirnames, filenames in os.walk('In_vivo_analysis'):
 		if dirpath.lower().endswith('/csv'):
 			mouseDir = os.path.split(dirpath)[0]
 			csvPaths = [os.path.join(dirpath, f) for f in filenames if f.endswith('.csv')]
@@ -41,7 +41,7 @@ def parseCsv(path):
 
 		for row in reader:
 			pathId = row[0]
-			pathName = row[1].lower()
+			pathName = row[1].lower().strip()
 			primaryPath = row[3].lower() == 'true'
 			pathLength = float(row[4])
 			startsOnPath = row[6]
@@ -69,8 +69,7 @@ def parseCsv(path):
 					axons[key] = axon
 
 				else:
-					print 'Error: primary path has unexpected ending'
-					sys.exit(1)
+					parseError('primary path has unexpected ending: {}'.format(pathName), key, path)
 
 			else:
 				branch = {}
@@ -144,7 +143,7 @@ def writeSummary(mouseDir, neurons):
 	summaryPath = os.path.join(mouseDir, 'summary.csv')
 	print 'Writing summary data to {}'.format(summaryPath)
 	with open(summaryPath, 'w') as summaryFile:
-		summaryFile.write('Source,Neuron,Layer IV Start,Layer IV End,Total Branches,Primary Branches,Secondary Branches, Tertiary Branches, Quarternary Branches, LII/III Branches,LIV Branches,"Middle" LIV Branches,LV Branches\n')
+		summaryFile.write('Source,Neuron,Layer IV Start,Layer IV End,Total Branches,Primary Branches,Secondary Branches,Tertiary Branches,Quarternary Branches,LII/III Branches,LIV Branches,"Middle" LIV Branches,LV Branches,Primary Layer IV,Primary Middle Third,Branches Greater than 30uM\n')
 		for neuron in neurons:
 			totalBranches = countBranches(neuron['branches'], isBranch)
 			primaryBranches = countBranches(neuron['branches'], isComplex, complexity=1)
@@ -155,6 +154,9 @@ def writeSummary(mouseDir, neurons):
 			layerIVBranches = countBranches(neuron['branches'], isLayer, layer='IV', neuron=neuron)
 			layerVBranches = countBranches(neuron['branches'], isLayer, layer='V', neuron=neuron)
 			middleThirdBranches = countBranches(neuron['branches'], isMiddleThird, neuron=neuron)
+			primaryLayerIV = countBranches(neuron['branches'], isPrimaryLayerIV, neuron=neuron)
+			primaryMiddleThird = countBranches(neuron['branches'], isPrimaryMiddleThird, neuron=neuron)
+			greaterThan30 = countBranches(neuron['branches'], isLong)
 
 			csv = []
 			csv.append(neuron['source'])
@@ -170,6 +172,9 @@ def writeSummary(mouseDir, neurons):
 			csv.append(str(layerIVBranches))
 			csv.append(str(middleThirdBranches))
 			csv.append(str(layerVBranches))
+			csv.append(str(primaryLayerIV))
+			csv.append(str(primaryMiddleThird))
+			csv.append(str(greaterThan30))
 			summaryFile.write(','.join(csv) + '\n')
 
 def countBranches(branches, supplier, **kwargs):
@@ -195,6 +200,12 @@ def isMiddleThird(branch, **kwargs):
 		return 1 if percent > (1.0/3) and percent < (2.0/3) else 0
 	return 0
 
+def isPrimaryMiddleThird(branch, **kwargs):
+	return 1 if branch['complexity'] == 1 and isMiddleThird(branch, **kwargs) else 0
+
+def isPrimaryLayerIV(branch, **kwargs):
+	return 1 if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'IV' else 0
+
 def getLayer(branch, neuron):
 	if branch['startY'] < neuron['layerIVStart']:
 		return 'II/III'
@@ -213,6 +224,9 @@ def getDirection(branch):
 		return 'V'
 	else:
 		return 'stable'
+
+def isLong(branch, **kwargs):
+	return 1 if branch['length'] > 30 else 0
 
 def fromFloat(number):
 	return '%.2f' % number
