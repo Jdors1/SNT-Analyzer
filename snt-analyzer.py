@@ -4,11 +4,11 @@ import os
 
 # Program entry point
 def main():
-	if len(sys.argv) != 1:
-		print 'Usage: python snt-analyzer.py'
+	if len(sys.argv) != 2:
+		print 'Usage: python snt-analyzer.py <path>'
 		sys.exit(1)
 
-	mouseData = parseMouseData()
+	mouseData = parseMouseData(sys.argv[1])
 	for mouseDir, neurons in mouseData.iteritems():
 		writeBranches(mouseDir, neurons)
 		writeSummary(mouseDir, neurons)
@@ -16,9 +16,9 @@ def main():
 # Finds and parses all files inside directory name CSV and ending with .csv
 # extension. Returns a dictionary: key = mouse directory, value = list of
 # neuron objects
-def parseMouseData():
+def parseMouseData(path):
 	mouseData = {}
-	for dirpath, dirnames, filenames in os.walk('In_vivo_analysis'):
+	for dirpath, dirnames, filenames in os.walk(path):
 		if dirpath.lower().endswith('/csv'):
 			mouseDir = os.path.split(dirpath)[0]
 			csvPaths = [os.path.join(dirpath, f) for f in filenames if f.endswith('.csv')]
