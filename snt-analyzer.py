@@ -80,10 +80,9 @@ def parseCsv(path):
 				branch['length'] = pathLength
 				branches[pathId] = branch
 
-	numKeys = len(axons)
-	if len(layerIVStart) != numKeys or len(layerIVEnd) != numKeys:
-		print 'Error: inconsistent number of keys in file {}'.format(path)
-		sys.exit(1)
+	# Make sure keys match
+	checkKeys(axons, layerIVStart, path)
+	checkKeys(axons, layerIVEnd, path)
 
 	neurons = []
 	for key in layerIVStart:
@@ -99,6 +98,14 @@ def parseCsv(path):
 
 def keyFromPathName(pathName):
 	return ''.join(pathName.split(' ')[:2])
+
+def checkKeys(dict1, dict2, path):
+	keys1 = set(dict1.keys())
+	keys2 = set(dict2.keys())
+	if keys1 != keys2:
+		print 'Error: inconsistent keys in file {}'.format(path)
+		print '  {} vs {}'.format(keys1, keys2)
+		sys.exit(1)
 
 def parseError(reason, key, path):
 	print 'Error: {} for {} in file {}'.format(reason, key, path)
