@@ -1,6 +1,7 @@
 import csv
 import sys
 import os
+import math
 
 # Program entry point
 def main():
@@ -47,6 +48,10 @@ def parseCsv(path):
 			startsOnPath = row[6]
 			startY = float(row[11])
 			endY = float(row[14])
+			startX = float(row[10])
+			endX = float(row[13])
+			startZ = float(row[12])
+			endZ = float(row[15])
 
 			if primaryPath:
 				key = keyFromPathName(pathName)
@@ -76,6 +81,10 @@ def parseCsv(path):
 				branch['id'] = pathId
 				branch['startY'] = startY
 				branch['endY'] = endY
+				branch['startX'] = startX
+				branch['endX'] = endX
+				branch['startZ'] = startZ
+				branch['endZ'] = endZ
 				branch['parentId'] = startsOnPath
 				branch['length'] = pathLength
 				branches[pathId] = branch
@@ -126,7 +135,7 @@ def writeBranches(mouseDir, neurons):
 	branchesPath = os.path.join(mouseDir, 'branches.csv')
 	print 'Writing branch data to {}'.format(branchesPath)
 	with open(branchesPath, 'w') as branchFile:
-		branchFile.write('Source,Neuron,PathId,Length,StartY,EndY,Layer,Complexity,Direction,Percent Along Axon (IV)\n')
+		branchFile.write('Source,Neuron,PathId,Length,StartY,EndY,StartX,EndX,StartZ,EndZ,Layer,Complexity,Direction,Percent Along Axon (IV),Tortuosity\n')
 		for neuron in neurons:
 			writeBranchesInner(branchFile, neuron, neuron['branches'])
 
@@ -139,10 +148,15 @@ def writeBranchesInner(branchFile, neuron, branches):
 		csv.append(fromFloat(branch['length']))
 		csv.append(fromFloat(branch['startY']))
 		csv.append(fromFloat(branch['endY']))
+		csv.append(fromFloat(branch['startX']))
+		csv.append(fromFloat(branch['endX']))
+		csv.append(fromFloat(branch['startZ']))
+		csv.append(fromFloat(branch['endZ']))
 		csv.append(getLayer(branch, neuron))
 		csv.append(str(branch['complexity']))
 		csv.append(getDirection(branch))
 		csv.append(fromFloat(getPercentage(branch, neuron) *100))
+		csv.append(fromFloat(getTortuosity(branch)))
 		branchFile.write(','.join(csv) + '\n')
 		writeBranchesInner(branchFile, neuron, branch['branches'])
 
@@ -226,6 +240,10 @@ def getLayer(branch, neuron):
 		return 'IV'
 	else:
 		return 'V'
+
+def getTortuosity(branch, **kwargs):
+	distance = math.sqrt(math.pow(branch['startY']-branch['endY'],2) + math.pow(branch['startX']-branch['endX'],2) + math.pow(branch['startZ']-branch['endZ'],2))
+	return branch['length']/distance
 
 def getPercentage(branch, neuron):
 	return (branch['startY'] - neuron['layerIVStart'])/(neuron['layerIVEnd'] - neuron['layerIVStart'])
