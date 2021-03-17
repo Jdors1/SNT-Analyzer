@@ -65,7 +65,7 @@ def parseCsv(path):
 						parseError('found multiple axons', key, path)
 					axon = {}
 					axon['id'] = pathId
-					axon['length'] = pathLength
+					axon['startY'] = startY
 					axons[key] = axon
 
 				else:
@@ -151,7 +151,7 @@ def writeSummary(mouseDir, neurons):
 	summaryPath = os.path.join(mouseDir, 'summary.csv')
 	print 'Writing summary data to {}'.format(summaryPath)
 	with open(summaryPath, 'w') as summaryFile:
-		summaryFile.write('Source,Neuron, AxonLayer IV Start,Layer IV End,Total Puncta,Total Branches,Primary Branches,Secondary Branches,Tertiary Branches,Quarternary Branches,LII/III Branches,LIV Branches,"Middle" LIV Branches,LV Branches,Primary Layer IV,Primary Middle Third\n')
+		summaryFile.write('Source,Neuron,Cell Body Position,Layer IV Start,Layer IV End,Total Puncta,Total Branches,Primary Branches,Secondary Branches,Tertiary Branches,Quarternary Branches,LII/III Branches,LIV Branches,"Middle" LIV Branches,LV Branches,Primary Layer IV,Primary Middle Third\n')
 		for neuron in neurons:
 			totalPuncta = countBranches(neuron['branches'], isPuncta)
 			totalBranches = countBranches(neuron['branches'], isBranch)
@@ -169,6 +169,7 @@ def writeSummary(mouseDir, neurons):
 			csv = []
 			csv.append(neuron['source'])
 			csv.append(neuron['name'])
+			csv.append(fromFloat(neuron['layerIVStart'] - neuron['axon']['startY']))
 			csv.append(fromFloat(neuron['layerIVStart']))
 			csv.append(fromFloat(neuron['layerIVEnd']))
 			csv.append(str(totalPuncta))
