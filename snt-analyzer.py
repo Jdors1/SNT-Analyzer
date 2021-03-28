@@ -165,7 +165,7 @@ def writeSummary(mouseDir, neurons):
 	summaryPath = os.path.join(mouseDir, 'summary.csv')
 	print 'Writing summary data to {}'.format(summaryPath)
 	with open(summaryPath, 'w') as summaryFile:
-		summaryFile.write('Source,Neuron,Cell Body Position,Layer IV Start,Layer IV End,Total Puncta,Total Branches,Primary Branches,Secondary Branches,Tertiary Branches,Quarternary Branches,LII/III Branches,LIV Branches,"Middle" LIV Branches,LV Branches,Primary Layer IV,Primary Middle Third\n')
+		summaryFile.write('Source,Neuron,Cell Body Position,Layer IV Start,Layer IV End,Total Puncta,Total Branches,Primary Branches,Secondary Branches,Tertiary Branches,Quarternary Branches,LII/III Branches,LIV Branches,"Middle" LIV Branches,LV Branches,Primary Layer II/III,Primary Layer V,Primary Layer IV,Primary Middle Third,Complex Middle LayerIV\n')
 		for neuron in neurons:
 			totalPuncta = countBranches(neuron['branches'], isPuncta)
 			totalBranches = countBranches(neuron['branches'], isBranch)
@@ -178,7 +178,10 @@ def writeSummary(mouseDir, neurons):
 			layerVBranches = countBranches(neuron['branches'], isLayer, layer='V', neuron=neuron)
 			middleThirdBranches = countBranches(neuron['branches'], isMiddleThird, neuron=neuron)
 			primaryLayerIV = countBranches(neuron['branches'], isPrimaryLayerIV, neuron=neuron)
+			primaryLayerV = countBranches(neuron['branches'], isPrimaryLayerV, neuron=neuron)
+			primaryLayer23 = countBranches(neuron['branches'], isPrimaryLayer23, neuron=neuron)
 			primaryMiddleThird = countBranches(neuron['branches'], isPrimaryMiddleThird, neuron=neuron)
+			complexMiddleThird = countBranches(neuron['branches'], isComplexMiddleLayerIV, neuron=neuron)
 
 			csv = []
 			csv.append(neuron['source'])
@@ -196,8 +199,11 @@ def writeSummary(mouseDir, neurons):
 			csv.append(str(layerIVBranches))
 			csv.append(str(middleThirdBranches))
 			csv.append(str(layerVBranches))
+			csv.append(str(primaryLayer23))
+			csv.append(str(primaryLayerV))
 			csv.append(str(primaryLayerIV))
 			csv.append(str(primaryMiddleThird))
+			csv.append(str(complexMiddleThird))
 			summaryFile.write(','.join(csv) + '\n')
 
 def countBranches(branches, supplier, **kwargs):
@@ -224,14 +230,23 @@ def isMiddleThird(branch, **kwargs):
 	neuron = kwargs['neuron']
 	if getLayer(branch, neuron) == 'IV':
 		percent = getPercentage(branch, neuron)
-		return isBranch(branch, **kwargs) if percent > (1.0/3) and percent < (2.0/3) else 0
+		return isBranch(branch, **kwargs) if percent > (1.0/4) and percent < (3.0/4) else 0
 	return 0
 
 def isPrimaryMiddleThird(branch, **kwargs):
 	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and isMiddleThird(branch, **kwargs) else 0
 
+def isComplexMiddleLayerIV(branch, **kwargs):
+	return isBranch(branch, **kwargs) if branch['complexity'] > 1 and isMiddleThird(branch, **kwargs) else 0
+
 def isPrimaryLayerIV(branch, **kwargs):
 	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'IV' else 0
+
+def isPrimaryLayerV(branch, **kwargs):
+	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'V' else 0
+
+def isPrimaryLayer23(branch, **kwargs):
+	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'II/III' else 0
 
 def getLayer(branch, neuron):
 	if branch['startY'] < neuron['layerIVStart']:

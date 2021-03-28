@@ -1,6 +1,7 @@
 import csv
 import sys
 import os
+import math
 
 # Program entry point
 def main():
@@ -45,6 +46,10 @@ def parseCsv(path):
 			startsOnPath = row[6]
 			startY = float(row[11])
 			endY = float(row[14])
+			startX = float(row[10])
+			endX = float(row[13])
+			startZ = float(row[12])
+			endZ = float(row[15])
 
 			if primaryPath:
 				key = keyFromPathName(pathName)
@@ -65,6 +70,10 @@ def parseCsv(path):
 				branch['id'] = pathId
 				branch['startY'] = startY
 				branch['endY'] = endY
+				branch['startX'] = startX
+				branch['endX'] = endX
+				branch['startZ'] = startZ
+				branch['endZ'] = endZ
 				branch['parentId'] = startsOnPath
 				branch['length'] = pathLength
 				branches[pathId] = branch
@@ -101,7 +110,7 @@ def writeBranches(mouseDir, neurons):
 	branchesPath = os.path.join(mouseDir, 'branches.csv')
 	print 'Writing branch data to {}'.format(branchesPath)
 	with open(branchesPath, 'w') as branchFile:
-		branchFile.write('Source,Neuron,Length,StartY,EndY,Complexity\n')
+		branchFile.write('Source,Neuron,Length,StartY,EndY,Complexity,Tortuosity\n')
 		for neuron in neurons:
 			writeBranchesInner(branchFile, neuron, neuron['branches'])
 
@@ -114,6 +123,7 @@ def writeBranchesInner(branchFile, neuron, branches):
 		csv.append(fromFloat(branch['startY']))
 		csv.append(fromFloat(branch['endY']))
 		csv.append(str(branch['complexity']))
+		csv.append(fromFloat(getTortuosity(branch)))
 		branchFile.write(','.join(csv) + '\n')
 		writeBranchesInner(branchFile, neuron, branch['branches'])
 
@@ -152,6 +162,10 @@ def countBranches(branches, supplier, **kwargs):
 
 def isBranch(branch, **kwargs):
 	return 1
+
+def getTortuosity(branch, **kwargs):
+	distance = math.sqrt(math.pow(branch['startY']-branch['endY'],2) + math.pow(branch['startX']-branch['endX'],2) + math.pow(branch['startZ']-branch['endZ'],2))
+	return branch['length']/distance
 
 def isComplex(branch, **kwargs):
 	return 1 if branch['complexity'] == kwargs['complexity'] else 0
