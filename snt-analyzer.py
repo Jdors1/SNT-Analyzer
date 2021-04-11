@@ -128,8 +128,12 @@ def getChildren(branches, pathId, complexity):
 			child['complexity'] = complexity
 			child['branches'] = getChildren(branches, child['id'], complexity + 1)
 			child['combinedTreeLength'] = child['length']
+			child['combinedTreeCount'] = 1
+			child['combinedTreeCountSansPuncta'] = isBranch(child)
 			for grandchild in child['branches']:
 				child['combinedTreeLength'] += grandchild['combinedTreeLength']
+				child['combinedTreeCount'] += grandchild['combinedTreeCount']
+				child['combinedTreeCountSansPuncta'] += grandchild['combinedTreeCountSansPuncta']
 			children.append(child)
 	return children
 
@@ -154,7 +158,9 @@ def writeBranches(mouseDir, neurons):
 			'Direction',
 			'Percent Along Axon (IV)',
 			'Tortuosity',
-			'CombinedTreeLength']) + '\n')
+			'CombinedTreeLength',
+			'CombinedTreeCount',
+			'CombinedTreeCountSansPuncta']) + '\n')
 		for neuron in neurons:
 			writeBranchesInner(branchFile, neuron, neuron['branches'])
 
@@ -174,9 +180,11 @@ def writeBranchesInner(branchFile, neuron, branches):
 		csv.append(getLayer(branch, neuron))
 		csv.append(str(branch['complexity']))
 		csv.append(getDirection(branch))
-		csv.append(fromFloat(getPercentage(branch, neuron) *100))
+		csv.append(fromFloat(getPercentage(branch, neuron)*100))
 		csv.append(fromFloat(getTortuosity(branch)))
 		csv.append(fromFloat(branch['combinedTreeLength']))
+		csv.append(str(branch['combinedTreeCount']))
+		csv.append(str(branch['combinedTreeCountSansPuncta']))
 		branchFile.write(','.join(csv) + '\n')
 		writeBranchesInner(branchFile, neuron, branch['branches'])
 
@@ -255,39 +263,39 @@ def countBranches(branches, supplier, **kwargs):
 	return count
 
 # Branches are anything greater than 10um, otherwise they are puncta
-def isBranch(branch, **kwargs):
+def isBranch(branch):
 	return 1 if branch['length'] > 10 else 0
 
-def isPuncta(branch, **kwargs):
-	return 1 if not isBranch(branch, **kwargs) else 0
+def isPuncta(branch):
+	return 1 if not isBranch(branch) else 0
 
 def isComplex(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == kwargs['complexity'] else 0
+	return isBranch(branch) if branch['complexity'] == kwargs['complexity'] else 0
 
 def isLayer(branch, **kwargs):
-	return isBranch(branch, **kwargs) if getLayer(branch, kwargs['neuron']) == kwargs['layer'] else 0
+	return isBranch(branch) if getLayer(branch, kwargs['neuron']) == kwargs['layer'] else 0
 
 def isMiddleLayerIV(branch, **kwargs):
 	neuron = kwargs['neuron']
 	if getLayer(branch, neuron) == 'IV':
 		percent = getPercentage(branch, neuron)
-		return isBranch(branch, **kwargs) if percent > (1.0/4) and percent < (3.0/4) else 0
+		return isBranch(branch) if percent > (1.0/4) and percent < (3.0/4) else 0
 	return 0
 
 def isPrimaryMiddleLayerIV(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and isMiddleLayerIV(branch, **kwargs) else 0
+	return isBranch(branch) if branch['complexity'] == 1 and isMiddleLayerIV(branch, **kwargs) else 0
 
 def isComplexMiddleLayerIV(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] > 1 and isMiddleLayerIV(branch, **kwargs) else 0
+	return isBranch(branch) if branch['complexity'] > 1 and isMiddleLayerIV(branch, **kwargs) else 0
 
 def isPrimaryLayerIV(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'IV' else 0
+	return isBranch(branch) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'IV' else 0
 
 def isPrimaryLayerV(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'V' else 0
+	return isBranch(branch) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'V' else 0
 
 def isPrimaryLayer23(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'II/III' else 0
+	return isBranch(branch) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'II/III' else 0
 
 def getLayer(branch, neuron):
 	if branch['startY'] < neuron['layerIVStart']:
@@ -297,7 +305,7 @@ def getLayer(branch, neuron):
 	else:
 		return 'V'
 
-def getTortuosity(branch, **kwargs):
+def getTortuosity(branch):
 	distance = math.sqrt(math.pow(branch['startY']-branch['endY'],2) + math.pow(branch['startX']-branch['endX'],2) + math.pow(branch['startZ']-branch['endZ'],2))
 	return branch['length']/distance
 
