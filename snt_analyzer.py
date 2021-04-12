@@ -41,8 +41,7 @@ def writeBranches(mouseDir, neurons):
 			'Percent Along Axon (IV)',
 			'Tortuosity',
 			'CombinedTreeLength',
-			'CombinedTreeCount',
-			'CombinedTreeCountSansPuncta']) + '\n')
+			'CombinedTreeCount']) + '\n')
 		for neuron in neurons:
 			writeBranchesInner(branchFile, neuron, neuron['branches'])
 
@@ -66,7 +65,6 @@ def writeBranchesInner(branchFile, neuron, branches):
 		csv.append(fromFloat(snt_calc.getTortuosity(branch)))
 		csv.append(fromFloat(branch['combinedTreeLength']))
 		csv.append(str(branch['combinedTreeCount']))
-		csv.append(str(branch['combinedTreeCountSansPuncta']))
 		branchFile.write(','.join(csv) + '\n')
 		writeBranchesInner(branchFile, neuron, branch['branches'])
 
@@ -81,7 +79,7 @@ def writeSummary(mouseDir, neurons):
 			'Cell Body Position',
 			'Layer IV Start',
 			'Layer IV End',
-			'Total Puncta',
+			'Total Branches With Puncta',
 			'Total Branches',
 			'Primary Branches',
 			'Secondary Branches',
@@ -95,24 +93,26 @@ def writeSummary(mouseDir, neurons):
 			'Primary Layer IV',
 			'"Middle" Layer IV',
 			'Primary "Middle" Layer IV',
-			'Complex "Middle" Layer IV']) + '\n')
+			'Complex "Middle" Layer IV',
+			'"Middle" Layer IV Total Length']) + '\n')
 
 		for neuron in neurons:
-			totalPuncta = snt_calc.countBranches(neuron['branches'], snt_calc.isPuncta)
-			totalBranches = snt_calc.countBranches(neuron['branches'], snt_calc.isBranch)
-			primaryBranches = snt_calc.countBranches(neuron['branches'], snt_calc.isComplex, complexity=1)
-			secondaryBranches = snt_calc.countBranches(neuron['branches'], snt_calc.isComplex, complexity=2)
-			tertiaryBranches = snt_calc.countBranches(neuron['branches'], snt_calc.isComplex, complexity=3)
-			quaternaryBranches = snt_calc.countBranches(neuron['branches'], snt_calc.isComplex, complexity=4)
-			layerIIIBranches = snt_calc.countBranches(neuron['branches'], snt_calc.isLayer, layer='II/III', neuron=neuron)
-			layerIVBranches = snt_calc.countBranches(neuron['branches'], snt_calc.isLayer, layer='IV', neuron=neuron)
-			layerVBranches = snt_calc.countBranches(neuron['branches'], snt_calc.isLayer, layer='V', neuron=neuron)
-			primaryLayerIV = snt_calc.countBranches(neuron['branches'], snt_calc.isPrimaryLayerIV, neuron=neuron)
-			primaryLayerV = snt_calc.countBranches(neuron['branches'], snt_calc.isPrimaryLayerV, neuron=neuron)
-			primaryLayer23 = snt_calc.countBranches(neuron['branches'], snt_calc.isPrimaryLayer23, neuron=neuron)
-			middleLayerIV = snt_calc.countBranches(neuron['branches'], snt_calc.isMiddleLayerIV, neuron=neuron)
-			primaryMiddleLayerIV = snt_calc.countBranches(neuron['branches'], snt_calc.isPrimaryMiddleLayerIV, neuron=neuron)
-			complexMiddleLayerIV = snt_calc.countBranches(neuron['branches'], snt_calc.isComplexMiddleLayerIV, neuron=neuron)
+			totalBranchesWithPuncta = snt_calc.summate(neuron['branches'], snt_calc.isBranch, includePuncta=True)
+			totalBranches = snt_calc.summate(neuron['branches'], snt_calc.isBranch)
+			primaryBranches = snt_calc.summate(neuron['branches'], snt_calc.isComplex, complexity=1)
+			secondaryBranches = snt_calc.summate(neuron['branches'], snt_calc.isComplex, complexity=2)
+			tertiaryBranches = snt_calc.summate(neuron['branches'], snt_calc.isComplex, complexity=3)
+			quaternaryBranches = snt_calc.summate(neuron['branches'], snt_calc.isComplex, complexity=4)
+			layerIIIBranches = snt_calc.summate(neuron['branches'], snt_calc.isLayer, layer='II/III', neuron=neuron)
+			layerIVBranches = snt_calc.summate(neuron['branches'], snt_calc.isLayer, layer='IV', neuron=neuron)
+			layerVBranches = snt_calc.summate(neuron['branches'], snt_calc.isLayer, layer='V', neuron=neuron)
+			primaryLayerIV = snt_calc.summate(neuron['branches'], snt_calc.isPrimaryLayerIV, neuron=neuron)
+			primaryLayerV = snt_calc.summate(neuron['branches'], snt_calc.isPrimaryLayerV, neuron=neuron)
+			primaryLayer23 = snt_calc.summate(neuron['branches'], snt_calc.isPrimaryLayer23, neuron=neuron)
+			middleLayerIV = snt_calc.summate(neuron['branches'], snt_calc.isMiddleLayerIV, neuron=neuron)
+			primaryMiddleLayerIV = snt_calc.summate(neuron['branches'], snt_calc.isPrimaryMiddleLayerIV, neuron=neuron)
+			complexMiddleLayerIV = snt_calc.summate(neuron['branches'], snt_calc.isComplexMiddleLayerIV, neuron=neuron)
+			middleLayerIVTotalLength = snt_calc.summate(neuron['branches'], snt_calc.getMiddleLayerIVLength, neuron=neuron, includePuncta=True)
 
 			csv = []
 			csv.append(neuron['source'])
@@ -120,7 +120,7 @@ def writeSummary(mouseDir, neurons):
 			csv.append(fromFloat(neuron['layerIVStart'] - neuron['axon']['startY']))
 			csv.append(fromFloat(neuron['layerIVStart']))
 			csv.append(fromFloat(neuron['layerIVEnd']))
-			csv.append(str(totalPuncta))
+			csv.append(str(totalBranchesWithPuncta))
 			csv.append(str(totalBranches))
 			csv.append(str(primaryBranches))
 			csv.append(str(secondaryBranches))
@@ -135,6 +135,7 @@ def writeSummary(mouseDir, neurons):
 			csv.append(str(middleLayerIV))
 			csv.append(str(primaryMiddleLayerIV))
 			csv.append(str(complexMiddleLayerIV))
+			csv.append(fromFloat(middleLayerIVTotalLength))
 			summaryFile.write(','.join(csv) + '\n')
 
 def fromFloat(number):
