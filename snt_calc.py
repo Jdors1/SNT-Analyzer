@@ -67,3 +67,6 @@ def getDirection(branch):
 
 def getMiddleLayerIVLength(branch, **kwargs):
 	return branch['length'] if isMiddleLayerIV(branch, **kwargs) else 0
+
+def getLayerLength(branch, **kwargs):
+	return branch['length'] if isLayer(branch, **kwargs) else 0

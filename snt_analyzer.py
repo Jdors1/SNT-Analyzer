@@ -94,6 +94,7 @@ def writeSummary(mouseDir, neurons):
 			'"Middle" Layer IV',
 			'Primary "Middle" Layer IV',
 			'Complex "Middle" Layer IV',
+			'Layer V Total Length',
 			'"Middle" Layer IV Total Length']) + '\n')
 
 		for neuron in neurons:
@@ -112,6 +113,7 @@ def writeSummary(mouseDir, neurons):
 			middleLayerIV = snt_calc.summate(neuron['branches'], snt_calc.isMiddleLayerIV, neuron=neuron)
 			primaryMiddleLayerIV = snt_calc.summate(neuron['branches'], snt_calc.isPrimaryMiddleLayerIV, neuron=neuron)
 			complexMiddleLayerIV = snt_calc.summate(neuron['branches'], snt_calc.isComplexMiddleLayerIV, neuron=neuron)
+			layerVTotalLength = snt_calc.summate(neuron['branches'], snt_calc.getLayerLength, layer='V', neuron=neuron, includePuncta=True)
 			middleLayerIVTotalLength = snt_calc.summate(neuron['branches'], snt_calc.getMiddleLayerIVLength, neuron=neuron, includePuncta=True)
 
 			csv = []
@@ -135,6 +137,7 @@ def writeSummary(mouseDir, neurons):
 			csv.append(str(middleLayerIV))
 			csv.append(str(primaryMiddleLayerIV))
 			csv.append(str(complexMiddleLayerIV))
+			csv.append(fromFloat(layerVTotalLength))
 			csv.append(fromFloat(middleLayerIVTotalLength))
 			summaryFile.write(','.join(csv) + '\n')
 
