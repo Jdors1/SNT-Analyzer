@@ -119,7 +119,7 @@ def getChildren(branches, pathId, complexity):
 			child['complexity'] = complexity
 			child['branches'] = getChildren(branches, child['id'], complexity + 1)
 			child['combinedTreeLength'] = child['length']
-			child['combinedTreeCount'] = snt_calc.isBranch(child)
+			child['combinedTreeCount'] = 1 if child['length'] > 10.0 else 0
 			for grandchild in child['branches']:
 				child['combinedTreeLength'] += grandchild['combinedTreeLength']
 				child['combinedTreeCount'] += grandchild['combinedTreeCount']

@@ -1,19 +1,17 @@
 import math
 
-MIN_BRANCH_LENGTH = 10.0
-
 def count(neuron, **kwargs):
-	summate(lambda b: 1, neuron['branches'], neuron, **kwargs)
+	return summate(lambda b: 1, neuron['branches'], neuron, **kwargs)
 
 def measureLength(neuron, **kwargs):
-	summate(lambda b: b['length'], neuron['branches'], neuron, **kwargs)
+	return summate(lambda b: b['length'], neuron['branches'], neuron, **kwargs)
 
 def summate(reducer, branches, neuron, **kwargs):
 	total = 0
 	for branch in branches:
-		if matches(branch, **kwargs):
+		if matches(branch, neuron, **kwargs):
 			total += reducer(branch)
-		total += summate(branch['branches'], **kwargs)
+		total += summate(reducer, branch['branches'], neuron, **kwargs)
 	return total
 
 def matches(branch, neuron, **kwargs):
@@ -21,7 +19,7 @@ def matches(branch, neuron, **kwargs):
 	if 'minLength' in kwargs:
 		match = match and branch['length'] > kwargs['minLength']
 	else:
-		match = match and branch['length'] > MIN_BRANCH_LENGTH # Default to this unless caller provides their own min
+		match = match and branch['length'] > 10.0 # Default to this unless caller provides their own min
 	if 'maxLength' in kwargs:
 		match = match and branch['length'] < kwargs['maxLength']
 	if 'layer' in kwargs:
