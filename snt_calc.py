@@ -1,46 +1,42 @@
 import math
 
-def summate(branches, supplier, **kwargs):
+MIN_BRANCH_LENGTH = 10.0
+
+def count(neuron, **kwargs):
+	summate(lambda b: 1, neuron['branches'], neuron, **kwargs)
+
+def measureLength(neuron, **kwargs):
+	summate(lambda b: b['length'], neuron['branches'], neuron, **kwargs)
+
+def summate(reducer, branches, neuron, **kwargs):
 	total = 0
 	for branch in branches:
-		total += summate(branch['branches'], supplier, **kwargs)
-		total += supplier(branch, **kwargs)
+		if matches(branch, **kwargs):
+			total += reducer(branch)
+		total += summate(branch['branches'], **kwargs)
 	return total
 
-# Branches are anything greater than 10um, otherwise they are puncta
-def isBranch(branch, **kwargs):
-	if 'includePuncta' in kwargs and kwargs['includePuncta']:
-		return 1
+def matches(branch, neuron, **kwargs):
+	match = True
+	if 'minLength' in kwargs:
+		match = match and branch['length'] > kwargs['minLength']
 	else:
-		return 1 if branch['length'] > 10 else 0
-
-def isComplex(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == kwargs['complexity'] else 0
-
-def isLayer(branch, **kwargs):
-	return isBranch(branch, **kwargs) if getLayer(branch, kwargs['neuron']) == kwargs['layer'] else 0
-
-def isMiddleLayerIV(branch, **kwargs):
-	neuron = kwargs['neuron']
-	if getLayer(branch, neuron) == 'IV':
-		percent = getPercentage(branch, neuron)
-		return isBranch(branch, **kwargs) if percent > (1.0/4) and percent < (3.0/4) else 0
-	return 0
-
-def isPrimaryMiddleLayerIV(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and isMiddleLayerIV(branch, **kwargs) else 0
-
-def isComplexMiddleLayerIV(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] > 1 and isMiddleLayerIV(branch, **kwargs) else 0
-
-def isPrimaryLayerIV(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'IV' else 0
-
-def isPrimaryLayerV(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'V' else 0
-
-def isPrimaryLayer23(branch, **kwargs):
-	return isBranch(branch, **kwargs) if branch['complexity'] == 1 and getLayer(branch, kwargs['neuron']) == 'II/III' else 0
+		match = match and branch['length'] > MIN_BRANCH_LENGTH # Default to this unless caller provides their own min
+	if 'maxLength' in kwargs:
+		match = match and branch['length'] < kwargs['maxLength']
+	if 'layer' in kwargs:
+		match = match and getLayer(branch, neuron) == kwargs['layer']
+	if 'minPercentage' in kwargs:
+		match = match and getPercentage(branch, neuron) > kwargs['minPercentage']
+	if 'maxPercentage' in kwargs:
+		match = match and getPercentage(branch, neuron) < kwargs['maxPercentage']
+	if 'complexity' in kwargs:
+		match = match and branch['complexity'] == kwargs['complexity']
+	if 'minComplexity' in kwargs:
+		match = match and branch['complexity'] >= kwargs['minComplexity']
+	if 'maxComplexity' in kwargs:
+		match = match and branch['complexity'] <= kwargs['maxComplexity']
+	return match
 
 def getLayer(branch, neuron):
 	if branch['startY'] < neuron['layerIVStart']:
@@ -64,9 +60,3 @@ def getDirection(branch):
 		return 'V'
 	else:
 		return 'stable'
-
-def getMiddleLayerIVLength(branch, **kwargs):
-	return branch['length'] if isMiddleLayerIV(branch, **kwargs) else 0
-
-def getLayerLength(branch, **kwargs):
-	return branch['length'] if isLayer(branch, **kwargs) else 0
