@@ -45,8 +45,10 @@ def getLayer(branch, neuron):
 		return 'V'
 
 def getTortuosity(branch):
-	distance = math.sqrt(math.pow(branch['startY']-branch['endY'],2) + math.pow(branch['startX']-branch['endX'],2) + math.pow(branch['startZ']-branch['endZ'],2))
-	return branch['length']/distance
+	euclideanDistance = math.sqrt(math.pow(branch['startY']-branch['endY'], 2) +
+	                              math.pow(branch['startX']-branch['endX'], 2) +
+	                              math.pow(branch['startZ']-branch['endZ'], 2))
+	return branch['length']/euclideanDistance
 
 def getPercentage(branch, neuron):
 	return (branch['startY'] - neuron['layerIVStart'])/(neuron['layerIVEnd'] - neuron['layerIVStart'])

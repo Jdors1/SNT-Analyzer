@@ -80,7 +80,10 @@ def writeSummary(mouseDir, neurons):
 			'Layer IV Start',
 			'Layer IV End',
 			'Total Branches With Puncta',
+			'Total Puncta',
+			'Total Primary Puncta',
 			'Total Branches',
+			'Total Branch Length',
 			'Primary Branches',
 			'Secondary Branches',
 			'Tertiary Branches',
@@ -95,11 +98,23 @@ def writeSummary(mouseDir, neurons):
 			'Primary "Middle" Layer IV',
 			'Complex "Middle" Layer IV',
 			'Layer V Total Length',
-			'"Middle" Layer IV Total Length']) + '\n')
+			'Layer II/III Total Length',
+			'"Middle" Layer IV Total Length',
+			'Primary Middle Layer IV Puncta',
+			'Primary Layer V Puncta',
+			'Layer V Puncta',
+			'Layer IV Puncta',
+			'Primary Layer IV Puncta',
+			'Layer II/III Puncta',
+			'Primary Layer II/III Puncta',
+			'Middle Layer IV Puncta']) + '\n')
 
 		for neuron in neurons:
 			totalBranchesWithPuncta = snt_calc.count(neuron, minLength=0.0)
+			totalPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0)
+			totalPrimaryPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, complexity=1)
 			totalBranches = snt_calc.count(neuron)
+			totalBranchLength = snt_calc.measureLength(neuron, minLength=0.0)
 			primaryBranches = snt_calc.count(neuron, complexity=1)
 			secondaryBranches = snt_calc.count(neuron, complexity=2)
 			tertiaryBranches = snt_calc.count(neuron, complexity=3)
@@ -114,7 +129,16 @@ def writeSummary(mouseDir, neurons):
 			primaryMiddleLayerIV = snt_calc.count(neuron, complexity=1, layer='IV', minPercentage=0.25, maxPercentage=0.75)
 			complexMiddleLayerIV = snt_calc.count(neuron, minComplexity=2, layer='IV', minPercentage=0.25, maxPercentage=0.75)
 			layerVTotalLength = snt_calc.measureLength(neuron, minLength=0.0, layer='V')
+			layer23TotalLength = snt_calc.measureLength(neuron, minLength=0.0, layer ='II/III')
 			middleLayerIVTotalLength = snt_calc.measureLength(neuron, minLength=0.0, layer='IV', minPercentage=0.25, maxPercentage=0.75)
+			primaryMiddleLayerIVPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer ='IV', complexity=1, minPercentage=0.25, maxPercentage=0.75)
+			primaryLayerVPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer='V', complexity=1)
+			layerVPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer='V')
+			layerIVPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer='IV')
+			primaryLayerIVPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer='IV', complexity=1)
+			layer23Puncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer='II/III')
+			primaryLayer23Puncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer='IV', complexity=1)
+			middleLayerIVPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer='IV')
 
 			csv = []
 			csv.append(neuron['source'])
@@ -123,7 +147,10 @@ def writeSummary(mouseDir, neurons):
 			csv.append(fromFloat(neuron['layerIVStart']))
 			csv.append(fromFloat(neuron['layerIVEnd']))
 			csv.append(str(totalBranchesWithPuncta))
+			csv.append(str(totalPuncta))
+			csv.append(str(totalPrimaryPuncta))
 			csv.append(str(totalBranches))
+			csv.append(fromFloat(totalBranchLength))
 			csv.append(str(primaryBranches))
 			csv.append(str(secondaryBranches))
 			csv.append(str(tertiaryBranches))
@@ -138,7 +165,16 @@ def writeSummary(mouseDir, neurons):
 			csv.append(str(primaryMiddleLayerIV))
 			csv.append(str(complexMiddleLayerIV))
 			csv.append(fromFloat(layerVTotalLength))
+			csv.append(fromFloat(layer23TotalLength))
 			csv.append(fromFloat(middleLayerIVTotalLength))
+			csv.append(str(primaryMiddleLayerIVPuncta))
+			csv.append(str(primaryLayerVPuncta))
+			csv.append(str(layerVPuncta))
+			csv.append(str(layerIVPuncta))
+			csv.append(str(primaryLayerIVPuncta))
+			csv.append(str(layer23Puncta))
+			csv.append(str(primaryLayer23Puncta))
+			csv.append(str(middleLayerIVPuncta))
 			summaryFile.write(','.join(csv) + '\n')
 
 def fromFloat(number):

@@ -1,4 +1,3 @@
-import csv
 import sys
 import os
 import snt_calc
@@ -25,7 +24,14 @@ def writeBranches(mouseDir, neurons):
 	branchesPath = os.path.join(mouseDir, 'branches.csv')
 	print 'Writing branch data to {}'.format(branchesPath)
 	with open(branchesPath, 'w') as branchFile:
-		branchFile.write('Source,Neuron,Length,StartY,EndY,Complexity,Tortuosity\n')
+		branchFile.write(','.join([
+			'Source',
+			'Neuron',
+			'Length',
+			'StartY',
+			'EndY',
+			'Complexity',
+			'Tortuosity']) + '\n')
 		for neuron in neurons:
 			writeBranchesInner(branchFile, neuron, neuron['branches'])
 
@@ -47,20 +53,33 @@ def writeSummary(mouseDir, neurons):
 	summaryPath = os.path.join(mouseDir, 'summary.csv')
 	print 'Writing summary data to {}'.format(summaryPath)
 	with open(summaryPath, 'w') as summaryFile:
-		summaryFile.write('Source,Neuron,Axon Length,Total Branch With Puncta,Total Branches,Primary Branches,Secondary Branches,Tertiary Branches,Quarternary Branches\n')
+		summaryFile.write(','.join([
+			'Source',
+			'Neuron',
+			'Axon Length',
+			'Total Branches With Puncta',
+			'Total Puncta',
+			'Total Branches',
+			'Primary Branches',
+			'Secondary Branches',
+			'Tertiary Branches',
+			'Quarternary Branches']) + '\n')
+
 		for neuron in neurons:
-			totalBranchesWithPuncta = snt_calc.summate(neuron['branches'], snt_calc.isBranch, includePuncta=True)
-			totalBranches = snt_calc.summate(neuron['branches'], snt_calc.isBranch)
-			primaryBranches = snt_calc.summate(neuron['branches'], snt_calc.isComplex, complexity=1)
-			secondaryBranches = snt_calc.summate(neuron['branches'], snt_calc.isComplex, complexity=2)
-			tertiaryBranches = snt_calc.summate(neuron['branches'], snt_calc.isComplex, complexity=3)
-			quaternaryBranches = snt_calc.summate(neuron['branches'], snt_calc.isComplex, complexity=4)
+			totalBranchesWithPuncta = snt_calc.count(neuron, minLength=0.0)
+			totalPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0)
+			totalBranches = snt_calc.count(neuron)
+			primaryBranches = snt_calc.count(neuron, complexity=1)
+			secondaryBranches = snt_calc.count(neuron, complexity=2)
+			tertiaryBranches = snt_calc.count(neuron, complexity=3)
+			quaternaryBranches = snt_calc.count(neuron, complexity=4)
 
 			csv = []
 			csv.append(neuron['source'])
 			csv.append(neuron['name'])
 			csv.append(fromFloat(neuron['axon']['length']))
 			csv.append(str(totalBranchesWithPuncta))
+			csv.append(str(totalPuncta))
 			csv.append(str(totalBranches))
 			csv.append(str(primaryBranches))
 			csv.append(str(secondaryBranches))
