@@ -6,7 +6,7 @@ import snt_parser
 # Program entry point
 def main():
 	if len(sys.argv) != 2:
-		print 'Usage: python snt_analyzer.py <path>'
+		print('Usage: python snt_analyzer.py <path>')
 		sys.exit(1)
 
 	# Parses out a dictionary where:
@@ -15,14 +15,14 @@ def main():
 	mouseData = snt_parser.parseMouseData(sys.argv[1], False)
 
 	# Perform analysis over the data and write output files
-	for mouseDir, neurons in mouseData.iteritems():
+	for mouseDir, neurons in mouseData.items():
 		writeBranches(mouseDir, neurons)
 		writeSummary(mouseDir, neurons)
 
 # Writes branch data to a file in the mouse directory
 def writeBranches(mouseDir, neurons):
 	branchesPath = os.path.join(mouseDir, 'branches.csv')
-	print 'Writing branch data to {}'.format(branchesPath)
+	print('Writing branch data to {}'.format(branchesPath))
 	with open(branchesPath, 'w') as branchFile:
 		branchFile.write(','.join([
 			'Source',
@@ -71,7 +71,7 @@ def writeBranchesInner(branchFile, neuron, branches):
 # Write summary data to a file in the mouse directory
 def writeSummary(mouseDir, neurons):
 	summaryPath = os.path.join(mouseDir, 'summary.csv')
-	print 'Writing summary data to {}'.format(summaryPath)
+	print('Writing summary data to {}'.format(summaryPath))
 	with open(summaryPath, 'w') as summaryFile:
 		summaryFile.write(','.join([
 			'Source',

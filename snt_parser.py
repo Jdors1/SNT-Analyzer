@@ -14,7 +14,7 @@ def parseMouseData(path, is_culture):
 			csvPaths = [os.path.join(dirpath, f) for f in filenames if f.lower().endswith('.csv')]
 			neurons = [neuron for path in csvPaths for neuron in parseCsv(path, is_culture)]
 			mouseData[mouseDir] = neurons
-			print 'Found {} neurons across {} csv files in {}'.format(len(neurons), len(csvPaths), mouseDir)
+			print('Found {} neurons across {} csv files in {}'.format(len(neurons), len(csvPaths), mouseDir))
 	return mouseData
 
 # Parses a single CSV file at the given path. Returns a list of neuron objects
@@ -103,12 +103,12 @@ def checkKeys(dict1, dict2, path):
 	keys1 = set(dict1.keys())
 	keys2 = set(dict2.keys())
 	if keys1 != keys2:
-		print 'Error: inconsistent keys in file {}'.format(path)
-		print '  {} vs {}'.format(keys1, keys2)
+		print('Error: inconsistent keys in file {}'.format(path))
+		print('  {} vs {}'.format(keys1, keys2))
 		sys.exit(1)
 
 def parseError(reason, key, path):
-	print 'Error: {} for {} in file {}'.format(reason, key, path)
+	print('Error: {} for {} in file {}'.format(reason, key, path))
 	sys.exit(1)
 
 def getChildren(branches, pathId, complexity):
