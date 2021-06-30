@@ -9,7 +9,7 @@ import snt_calc
 def parseMouseData(path, is_culture):
 	mouseData = {}
 	for dirpath, dirnames, filenames in os.walk(path):
-		if dirpath.lower().endswith('/csv'):
+		if dirpath.lower().endswith('csv'):
 			mouseDir = os.path.split(dirpath)[0]
 			csvPaths = [os.path.join(dirpath, f) for f in filenames if f.lower().endswith('.csv')]
 			neurons = [neuron for path in csvPaths for neuron in parseCsv(path, is_culture)]
@@ -59,6 +59,7 @@ def parseCsv(path, is_culture):
 						parseError('found multiple axons', key, path)
 					axon = {}
 					axon['id'] = pathId
+					axon['length'] = pathLength
 					axon['startY'] = startY
 					axons[key] = axon
 
@@ -84,7 +85,7 @@ def parseCsv(path, is_culture):
 		checkKeys(axons, layerIVEnd, path)
 
 	neurons = []
-	for key in layerIVStart:
+	for key in axons:
 		neuron = {}
 		neuron['name'] = key
 		if not is_culture:
