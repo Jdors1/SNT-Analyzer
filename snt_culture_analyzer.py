@@ -63,7 +63,13 @@ def writeSummary(mouseDir, neurons):
 			'Primary Branches',
 			'Secondary Branches',
 			'Tertiary Branches',
-			'Quarternary Branches']) + '\n')
+			'Quarternary Branches',
+			'Total Branch Length',
+			'Total Branchs>30uM',
+			'Total Branches>50uM',
+			'Total Branche>70uM',
+			'Total Branches>100uM',
+			'Mean Tortuosity']) + '\n')
 
 		for neuron in neurons:
 			totalBranchesWithPuncta = snt_calc.count(neuron, minLength=0.0)
@@ -73,6 +79,12 @@ def writeSummary(mouseDir, neurons):
 			secondaryBranches = snt_calc.count(neuron, complexity=2)
 			tertiaryBranches = snt_calc.count(neuron, complexity=3)
 			quaternaryBranches = snt_calc.count(neuron, complexity=4)
+			totalBranchLength = snt_calc.measureLength(neuron)
+			totalBranchesGreaterThan30uM = snt_calc.count(neuron, minLength=30.0)
+			totalBranchesGreaterThan50uM = snt_calc.count(neuron, minLength=50.0)
+			totalBranchesGreaterThan70uM = snt_calc.count(neuron, minLength=70.0)
+			totalBranchesGreaterThan100uM = snt_calc.count(neuron, minLength=100.0)
+			totalTortuosity = snt_calc.measureTortuosity(neuron, minLength=0.0)
 
 			csv = []
 			csv.append(neuron['source'])
@@ -85,7 +97,19 @@ def writeSummary(mouseDir, neurons):
 			csv.append(str(secondaryBranches))
 			csv.append(str(tertiaryBranches))
 			csv.append(str(quaternaryBranches))
+			csv.append(fromFloat(totalBranchLength))
+			csv.append(str(totalBranchesGreaterThan30uM))
+			csv.append(str(totalBranchesGreaterThan50uM))
+			csv.append(str(totalBranchesGreaterThan70uM))
+			csv.append(str(totalBranchesGreaterThan100uM))
+			csv.append(mean(totalTortuosity, totalBranchesWithPuncta))
 			summaryFile.write(','.join(csv) + '\n')
+
+def mean(measurement, count):
+	try:
+		return fromFloat(measurement / count)
+	except ZeroDivisionError:
+		return fromFloat(0.0)
 
 def fromFloat(number):
 	return '%.2f' % number

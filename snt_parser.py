@@ -60,6 +60,7 @@ def parseCsv(path, is_culture):
 					axon = {}
 					axon['id'] = pathId
 					axon['startY'] = startY
+					axon['length'] = pathLength
 					axons[key] = axon
 
 				else:
@@ -84,7 +85,7 @@ def parseCsv(path, is_culture):
 		checkKeys(axons, layerIVEnd, path)
 
 	neurons = []
-	for key in layerIVStart:
+	for key in axons:
 		neuron = {}
 		neuron['name'] = key
 		if not is_culture:

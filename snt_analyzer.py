@@ -99,6 +99,7 @@ def writeSummary(mouseDir, neurons):
 			'Complex "Middle" Layer IV',
 			'Layer V Total Length',
 			'Layer II/III Total Length',
+			'Layer IV Total Length',
 			'"Middle" Layer IV Total Length',
 			'Primary Middle Layer IV Puncta',
 			'Primary Layer V Puncta',
@@ -130,6 +131,7 @@ def writeSummary(mouseDir, neurons):
 			complexMiddleLayerIV = snt_calc.count(neuron, minComplexity=2, layer='IV', minPercentage=0.25, maxPercentage=0.75)
 			layerVTotalLength = snt_calc.measureLength(neuron, minLength=0.0, layer='V')
 			layer23TotalLength = snt_calc.measureLength(neuron, minLength=0.0, layer ='II/III')
+			layerIVTotalLength = snt_calc.measureLength(neuron, minLength=0.0, layer = 'IV')
 			middleLayerIVTotalLength = snt_calc.measureLength(neuron, minLength=0.0, layer='IV', minPercentage=0.25, maxPercentage=0.75)
 			primaryMiddleLayerIVPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer ='IV', complexity=1, minPercentage=0.25, maxPercentage=0.75)
 			primaryLayerVPuncta = snt_calc.count(neuron, minLength=0.0, maxLength=10.0, layer='V', complexity=1)
@@ -166,6 +168,7 @@ def writeSummary(mouseDir, neurons):
 			csv.append(str(complexMiddleLayerIV))
 			csv.append(fromFloat(layerVTotalLength))
 			csv.append(fromFloat(layer23TotalLength))
+			csv.append(fromFloat(layerIVTotalLength))
 			csv.append(fromFloat(middleLayerIVTotalLength))
 			csv.append(str(primaryMiddleLayerIVPuncta))
 			csv.append(str(primaryLayerVPuncta))

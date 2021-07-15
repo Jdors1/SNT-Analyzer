@@ -6,6 +6,9 @@ def count(neuron, **kwargs):
 def measureLength(neuron, **kwargs):
 	return summate(lambda b: b['length'], neuron['branches'], neuron, **kwargs)
 
+def measureTortuosity(neuron, **kwargs):
+	return summate(lambda b: getTortuosity(b), neuron['branches'], neuron, **kwargs)
+
 def summate(reducer, branches, neuron, **kwargs):
 	total = 0
 	for branch in branches:
