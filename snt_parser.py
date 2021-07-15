@@ -61,7 +61,6 @@ def parseCsv(path, is_culture):
 					axon['id'] = pathId
 					axon['length'] = pathLength
 					axon['startY'] = startY
-					axon['length'] = pathLength
 					axons[key] = axon
 
 				else:
